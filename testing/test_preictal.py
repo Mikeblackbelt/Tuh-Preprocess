@@ -101,3 +101,100 @@ def test_preictal_sorted_by_split_then_time(sample_master):
         times = group["start_time"].tolist()
         assert times == sorted(times)
     logger.info("test_preictal_sorted_by_split_then_time: passed")
+
+def test_preictal_zero_cutoff_and_duration():
+    logger.info("test_preictal_zero_cutoff_and_duration: start")
+    # With zero cutoff and duration: raw_end = start - 0 = start; raw_start = start - 0 = start
+    # raw_end > 0 (start=100), raw_start = start - 0 - 0 = 100 > 0 → status=0, window=[100, 100]
+    df = pd.DataFrame({
+        "edf_path":   ["a.edf"],
+        "csv_path":   ["a.csv"],
+        "split":      ["train"],
+        "channel":    ["FP1-F7"],
+        "start_time": [100.0],
+        "stop_time":  [110.0],
+        "label":      ["fnsz"],
+        "confidence": [1],
+        "status":     [-1],
+    })
+    result = add_preictal_tags(df, start_cutoff=0, max_duration=0)
+    preictal = result[result["label"] == "pfnsz"].iloc[0]
+    assert preictal["start_time"] >= 0
+    assert preictal["stop_time"] >= 0
+    logger.info("test_preictal_zero_cutoff_and_duration: passed")
+
+def test_preictal_exact_boundary_raw_end_zero():
+    logger.info("test_preictal_exact_boundary_raw_end_zero: start")
+    # ictal_start == start_cutoff => raw_end exactly 0 → status=2, window=[0,0]
+    df = pd.DataFrame({
+        "edf_path":   ["a.edf"],
+        "csv_path":   ["a.csv"],
+        "split":      ["train"],
+        "channel":    ["FP1-F7"],
+        "start_time": [10.0],
+        "stop_time":  [20.0],
+        "label":      ["fnsz"],
+        "confidence": [1],
+        "status":     [-1],
+    })
+    result = add_preictal_tags(df, start_cutoff=10, max_duration=5)
+    preictal = result[result["label"] == "pfnsz"].iloc[0]
+    assert preictal["start_time"] == 0.0
+    assert preictal["stop_time"] == 0.0
+    assert preictal["status"] == 2
+    logger.info("test_preictal_exact_boundary_raw_end_zero: passed")
+
+def test_preictal_exact_boundary_raw_start_zero():
+    logger.info("test_preictal_exact_boundary_raw_start_zero: start")
+    # raw_end > 0, raw_start exactly 0 → status=1, window=[0, raw_end]
+    df = pd.DataFrame({
+        "edf_path":   ["a.edf"],
+        "csv_path":   ["a.csv"],
+        "split":      ["train"],
+        "channel":    ["FP1-F7"],
+        "start_time": [15.0],
+        "stop_time":  [25.0],
+        "label":      ["fnsz"],
+        "confidence": [1],
+        "status":     [-1],
+    })
+    # raw_end = 15 - 5 = 10; raw_start = 10 - 10 = 0 → exactly 0 → status=1
+    result = add_preictal_tags(df, start_cutoff=5, max_duration=10)
+    preictal = result[result["label"] == "pfnsz"].iloc[0]
+    assert preictal["start_time"] == 0.0
+    assert preictal["stop_time"] == 10.0
+    assert preictal["status"] == 1
+    logger.info("test_preictal_exact_boundary_raw_start_zero: passed")
+
+def test_preictal_single_row_input():
+    logger.info("test_preictal_single_row_input: start")
+    df = pd.DataFrame({
+        "edf_path":   ["single.edf"],
+        "csv_path":   ["single.csv"],
+        "split":      ["eval"],
+        "channel":    ["FP1-F7"],
+        "start_time": [200.0],
+        "stop_time":  [210.0],
+        "label":      ["bckg"],
+        "confidence": [1],
+        "status":     [-1],
+    })
+    result = add_preictal_tags(df, start_cutoff=10, max_duration=30)
+    assert len(result) == 2
+    assert "pbckg" in result["label"].values
+    logger.info("test_preictal_single_row_input: passed")
+
+def test_preictal_original_status_preserved(sample_master):
+    logger.info("test_preictal_original_status_preserved: start")
+    result = add_preictal_tags(sample_master, start_cutoff=10, max_duration=50)
+    original_rows = result[~result["label"].str.startswith("p")]
+    assert (original_rows["status"] == -1).all()
+    logger.info("test_preictal_original_status_preserved: passed")
+
+def test_preictal_label_prefix_always_p(sample_master):
+    logger.info("test_preictal_label_prefix_always_p: start")
+    result = add_preictal_tags(sample_master, start_cutoff=10, max_duration=50)
+    preictal_rows = result[result["label"].str.startswith("p")]
+    for label in preictal_rows["label"]:
+        assert label.startswith("p")
+    logger.info("test_preictal_label_prefix_always_p: passed")

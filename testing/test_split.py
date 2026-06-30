@@ -34,3 +34,29 @@ def test_get_split_unknown():
     logger.info("test_get_split_unknown: start")
     assert get_split("/data/tusz/edf/misc/01_tcp_ar/rec.edf") == "unknown"
     logger.info("test_get_split_unknown: passed")
+
+def test_get_split_dev_case_insensitive():
+    logger.info("test_get_split_dev_case_insensitive: start")
+    assert get_split("/data/tusz/edf/DEV/01_tcp_ar/rec.edf") == "dev"
+    logger.info("test_get_split_dev_case_insensitive: passed")
+
+def test_get_split_eval_case_insensitive():
+    logger.info("test_get_split_eval_case_insensitive: start")
+    assert get_split("/data/tusz/edf/EVAL/01_tcp_ar/rec.edf") == "eval"
+    logger.info("test_get_split_eval_case_insensitive: passed")
+
+def test_get_split_train_prioritized_over_later_splits():
+    # If 'train' appears before 'dev' in the path, should return 'train'
+    logger.info("test_get_split_train_prioritized_over_later_splits: start")
+    assert get_split("/data/train/dev/rec.edf") == "train"
+    logger.info("test_get_split_train_prioritized_over_later_splits: passed")
+
+def test_get_split_filename_only():
+    logger.info("test_get_split_filename_only: start")
+    assert get_split("rec.edf") == "unknown"
+    logger.info("test_get_split_filename_only: passed")
+
+def test_get_split_mixed_case():
+    logger.info("test_get_split_mixed_case: start")
+    assert get_split("/data/tusz/edf/Train/01_tcp_ar/rec.edf") == "train"
+    logger.info("test_get_split_mixed_case: passed")

@@ -57,4 +57,38 @@ def test_malformed_csv_skipped(dataset_dir):
     logger.info("test_malformed_csv_skipped: passed")
 
 
+def test_csv_with_comment_lines_skipped(dataset_dir):
+    logger.info("test_csv_with_comment_lines_skipped: start")
+    # CSV with '#' comment header lines (like TUSZ annotation format)
+    content = "# comment line\nchannel,start_time,stop_time,label,confidence\nFP1-F7,0.0,1.0,fnsz,1\n"
+    (dataset_dir / "annotated.csv").write_text(content)
+    tags = get_unique_tags(dataset_dir)
+    assert "fnsz" in tags
+    logger.info("test_csv_with_comment_lines_skipped: passed")
+
+def test_csv_with_whitespace_column_names(dataset_dir):
+    logger.info("test_csv_with_whitespace_column_names: start")
+    # Column names with surrounding whitespace should still work
+    content = " channel , start_time , stop_time , label , confidence \nFP1-F7,0.0,1.0,bckg,1\n"
+    (dataset_dir / "whitespace_cols.csv").write_text(content)
+    tags = get_unique_tags(dataset_dir)
+    assert "bckg" in tags
+    logger.info("test_csv_with_whitespace_column_names: passed")
+
+def test_returns_set_type(dataset_dir):
+    logger.info("test_returns_set_type: start")
+    write_csv(dataset_dir / "test.csv", ["fnsz"])
+    result = get_unique_tags(dataset_dir)
+    assert isinstance(result, set)
+    logger.info("test_returns_set_type: passed")
+
+def test_csv_missing_label_column_skipped(dataset_dir):
+    logger.info("test_csv_missing_label_column_skipped: start")
+    # CSV without a 'label' column should be skipped without crashing
+    (dataset_dir / "no_label.csv").write_text("channel,start_time,stop_time\nFP1-F7,0.0,1.0\n")
+    write_csv(dataset_dir / "good.csv", ["fnsz"])
+    tags = get_unique_tags(dataset_dir)
+    assert "fnsz" in tags
+    logger.info("test_csv_missing_label_column_skipped: passed")
+
 # --- get_split ---

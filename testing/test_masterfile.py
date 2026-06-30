@@ -87,3 +87,63 @@ def test_make_master_file_split_assigned(dataset_dir):
     df = make_master_file(dataset_dir, output_path=str(out))
     assert (df["split"] == "train").all()
     logger.info("test_make_master_file_split_assigned: passed")
+
+def test_make_master_file_multiple_csv_files(dataset_dir):
+    logger.info("test_make_master_file_multiple_csv_files: start")
+    write_csv(dataset_dir / "rec1.csv", ["fnsz"])
+    write_edf(dataset_dir / "rec1.edf")
+    write_csv(dataset_dir / "rec2.csv", ["gnsz"])
+    write_edf(dataset_dir / "rec2.edf")
+    out = dataset_dir / "master.csv"
+    df = make_master_file(dataset_dir, output_path=str(out))
+    assert df is not None
+    assert "fnsz" in df["label"].values
+    assert "gnsz" in df["label"].values
+    assert len(df) == 2
+    logger.info("test_make_master_file_multiple_csv_files: passed")
+
+def test_make_master_file_malformed_csv_with_edf(dataset_dir):
+    logger.info("test_make_master_file_malformed_csv_with_edf: start")
+    # Malformed CSV paired with an EDF should be skipped without crashing
+    (dataset_dir / "bad.csv").write_text("not,a,valid\n!!!\n")
+    write_edf(dataset_dir / "bad.edf")
+    write_csv(dataset_dir / "good.csv", ["fnsz"])
+    write_edf(dataset_dir / "good.edf")
+    out = dataset_dir / "master.csv"
+    df = make_master_file(dataset_dir, output_path=str(out))
+    assert df is not None
+    assert "fnsz" in df["label"].values
+    logger.info("test_make_master_file_malformed_csv_with_edf: passed")
+
+def test_make_master_file_allow_tag_multiple_tags(dataset_dir):
+    logger.info("test_make_master_file_allow_tag_multiple_tags: start")
+    write_csv(dataset_dir / "rec.csv", ["fnsz", "bckg", "gnsz"])
+    write_edf(dataset_dir / "rec.edf")
+    out = dataset_dir / "master.csv"
+    df = make_master_file(dataset_dir, output_path=str(out), allow_tag={"fnsz", "gnsz"})
+    assert set(df["label"]) == {"fnsz", "gnsz"}
+    logger.info("test_make_master_file_allow_tag_multiple_tags: passed")
+
+def test_make_master_file_output_csv_readable(dataset_dir):
+    logger.info("test_make_master_file_output_csv_readable: start")
+    import pandas as pd
+    write_csv(dataset_dir / "rec.csv", ["fnsz"])
+    write_edf(dataset_dir / "rec.edf")
+    out = dataset_dir / "master.csv"
+    make_master_file(dataset_dir, output_path=str(out))
+    loaded = pd.read_csv(str(out))
+    assert "label" in loaded.columns
+    assert "fnsz" in loaded["label"].values
+    logger.info("test_make_master_file_output_csv_readable: passed")
+
+def test_make_master_file_all_splits_detected(dataset_dir):
+    logger.info("test_make_master_file_all_splits_detected: start")
+    for split in ("train", "dev", "eval"):
+        split_dir = dataset_dir / "edf" / split / "01_tcp_ar"
+        split_dir.mkdir(parents=True)
+        write_csv(split_dir / "rec.csv", ["fnsz"])
+        write_edf(split_dir / "rec.edf")
+    out = dataset_dir / "master.csv"
+    df = make_master_file(dataset_dir, output_path=str(out))
+    assert set(df["split"]) == {"train", "dev", "eval"}
+    logger.info("test_make_master_file_all_splits_detected: passed")
