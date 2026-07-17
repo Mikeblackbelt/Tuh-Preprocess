@@ -46,8 +46,10 @@ def split_into_epochs(edf_path, epoch_duration=1):
         verbose=False
     )
     return epochs
+
 def standardize_channel_name(ch):
-    """Standardize a channel name by removing prefixes, reference suffixes, and non channels"""
+    """Standardize a channel name by removing prefixes, reference suffixes
+    Removes non channels"""
     if not ch.startswith('EEG'):
         return None
     # Remove reference suffixes: -LE (linked ears), -REF (average reference)
@@ -58,7 +60,7 @@ def standardize_channel_name(ch):
     return new_name
 
 def standardize_channels_names(raw, metadata):
-    """Standardize channel names by removing prefixes and reference suffixes"""
+    """Standardize all channel names in a EDF file by removing prefixes and reference suffixes"""
     channel_map = {}
 
     eeg_channels = []
@@ -95,7 +97,7 @@ standard_channels = [
 
 def drop_channels(raw, metadata, desired_order=standard_channels):
     """
-    Drop channels not in desired_order and reorder in the raw and metadata
+    Drop channels not in desired_order in the raw data and metadata
     Returns None if any desired channel is missing.
 
     Note that this most likely should be done only if we're trying to implement a model on an edge device,
@@ -113,9 +115,12 @@ def drop_channels(raw, metadata, desired_order=standard_channels):
     if raw_extra:
         filename = metadata['path'].iloc[0] if isinstance(metadata['path'], pd.Series) else metadata['path']
         logger.info(f'{filename} has {len(raw_extra)} extra channels: {raw_extra}')
-        metadata['channels'].iloc[0] = desired_order
-        raw.pick_channels(desired_order)
+        formatted_raw.pick_channels(desired_order)
+        metadata['channels'].iloc[0] = formatted_raw.ch_names
     
-    raw.reorder_channels(desired_order)
-    return raw
+    return formatted_raw, metadata
 
+def reorder_raw(raw, metadata, desired_order=standard_channels):
+    metadata['channels'].iloc[0] = desired_order
+    raw.reorder_channels(desired_order)
+    return raw, metadata
