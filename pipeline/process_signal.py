@@ -120,7 +120,9 @@ def drop_channels(raw, metadata, desired_order=standard_channels):
     
     return formatted_raw, metadata
 
-def reorder_raw(raw, metadata, desired_order=standard_channels):
-    metadata['channels'].iloc[0] = desired_order
+def reorder_channels(raw, metadata, desired_order=standard_channels):
+    current_channels = metadata['channels'].iloc[0]
+    reordered_channels = [ch for ch in desired_order if ch in current_channels]
+    metadata['channels'].iloc[0] = reordered_channels
     raw.reorder_channels(desired_order)
     return raw, metadata
