@@ -80,7 +80,7 @@ def standardize_channels_names(raw, metadata):
         if new_name is not None and new_name in standard_channels:
             new_metadata_channels.append(new_name)
 
-    metadata['channels'].iloc[0] = new_metadata_channels
+    metadata.at[0, 'channels'] = new_metadata_channels
     logger.info(f"standardized metadata channels {new_metadata_channels}")
 
     raw.rename_channels(channel_map)
@@ -104,7 +104,7 @@ def drop_channels(raw, metadata, desired_order=standard_channels):
     or if we need to reduce the size of our dataset for storage reasons
     """
 
-    formatted_raw, _ = standardize_channels_names(raw, metadata)
+    formatted_raw, metadata = standardize_channels_names(raw, metadata)
     raw_missing = [ch for ch in desired_order if ch not in formatted_raw.ch_names]
     raw_extra = [ch for ch in formatted_raw.ch_names if ch not in desired_order]
 
@@ -116,13 +116,14 @@ def drop_channels(raw, metadata, desired_order=standard_channels):
         filename = metadata['path'].iloc[0] if isinstance(metadata['path'], pd.Series) else metadata['path']
         logger.info(f'{filename} has {len(raw_extra)} extra channels: {raw_extra}')
         formatted_raw.pick_channels(desired_order)
-        metadata['channels'].iloc[0] = formatted_raw.ch_names
+        metadata.at[0, 'channels'] = formatted_raw.ch_names
     
     return formatted_raw, metadata
 
 def reorder_channels(raw, metadata, desired_order=standard_channels):
+    existing_channels = [ch for ch in desired_order if ch in raw.ch_names]
     current_channels = metadata['channels'].iloc[0]
     reordered_channels = [ch for ch in desired_order if ch in current_channels]
-    metadata['channels'].iloc[0] = reordered_channels
-    raw.reorder_channels(desired_order)
+    metadata.at[0, 'channels'] = reordered_channels
+    raw.reorder_channels(existing_channels)
     return raw, metadata
