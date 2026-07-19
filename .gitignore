@@ -249,3 +249,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# edf test folders
+03_tcp_ar_a
+02_tcp_le
