@@ -47,7 +47,7 @@ def split_into_epochs(edf_path, epoch_duration=1):
     )
     return epochs
 
-def standardize_channel_name(ch):
+def _standardize_channel_name(ch):
     """Standardize a channel name by removing prefixes, reference suffixes
     Removes non channels"""
     if not ch.startswith('EEG'):
@@ -59,13 +59,13 @@ def standardize_channel_name(ch):
     new_name = new_name.replace(" ", "")
     return new_name
 
-def standardize_channels_names(raw, metadata):
+def _standardize_channels_names(raw, metadata):
     """Standardize all channel names in a EDF file by removing prefixes and reference suffixes"""
     channel_map = {}
 
     eeg_channels = []
     for ch in raw.ch_names:
-        new_name = standardize_channel_name(ch)
+        new_name = _standardize_channel_name(ch)
         if new_name is not None and new_name in standard_channels:
             channel_map[ch] = new_name
             eeg_channels.append(ch)
@@ -76,7 +76,7 @@ def standardize_channels_names(raw, metadata):
     old_metadata_channels = metadata['channels'].iloc[0]
     new_metadata_channels = []
     for ch in old_metadata_channels:
-        new_name = standardize_channel_name(ch)
+        new_name = _standardize_channel_name(ch)
         if new_name is not None and new_name in standard_channels:
             new_metadata_channels.append(new_name)
 
@@ -104,7 +104,7 @@ def drop_channels(raw, metadata, desired_order=standard_channels):
     or if we need to reduce the size of our dataset for storage reasons
     """
 
-    formatted_raw, metadata = standardize_channels_names(raw, metadata)
+    formatted_raw, metadata = _standardize_channels_names(raw, metadata)
     raw_missing = [ch for ch in desired_order if ch not in formatted_raw.ch_names]
     raw_extra = [ch for ch in formatted_raw.ch_names if ch not in desired_order]
 
@@ -127,3 +127,40 @@ def reorder_channels(raw, metadata, desired_order=standard_channels):
     metadata.at[0, 'channels'] = reordered_channels
     raw.reorder_channels(existing_channels)
     return raw, metadata
+
+# These are the standard bipolar pairs in the 10-20 system
+default_bipolar_pairs = [
+    ('FP1', 'F7'),
+    ('F7', 'T3'),
+    ('T3', 'T5'),
+    ('T5', 'O1'),
+    ('FP2', 'F8'),
+    ('F8', 'T4'),
+    ('T4', 'T6'),
+    ('T6', 'O2'),
+    ('FZ', 'CZ'),
+    ('CZ', 'PZ'),
+    ('FP1', 'F3'),
+    ('F3', 'C3'),
+    ('C3', 'P3'),
+    ('P3', 'O1'),
+    ('FP2', 'F4'),
+    ('F4', 'C4'),
+    ('C4', 'P4'),
+    ('P4', 'O2'),
+]
+
+def create_bipolar_montages(raw, metadata, bipolar_pairs=default_bipolar_pairs):
+    """ Converts the reference montages to bipolar montages for standardization"""
+    raw, metadata = _standardize_channels_names(raw, metadata)
+
+    for ch1, ch2 in bipolar_pairs:
+        if ch1 not in raw.ch_names or ch2 not in raw.ch_names:
+            logger.warning(f'{ch1} or {ch2} from bipolar_pairs missing from raw file channels {raw.ch_names} ')
+            return None
+        ch1_signal = raw.get_data(picks=[ch1], preload=True)
+        ch2_signal = raw.get_data(picks=[ch2], preload=True)
+        difference = ch1_signal - ch2_signal
+    
+    # Continue accordingly to whether the .edf files are converted to .npy or stay as .edf
+
