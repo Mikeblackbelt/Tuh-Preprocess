@@ -1,6 +1,12 @@
 import os
+import sys
 
-from pipeline.preictal_segment import get_split
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
+from preictal_segment import get_split
 from util import handle_logs
 
 logger = handle_logs.get_logger("session_index", "applog")
@@ -115,4 +121,4 @@ def index_sessions(dataset_path):
     return sessions
 
 if __name__ == "__main__":
-    session = index_sessions("dev")
+    session = index_sessions(input('path\n'))

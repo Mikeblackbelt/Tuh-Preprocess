@@ -1,5 +1,12 @@
 import os
+import sys
 import pandas as pd
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
 from util import handle_logs
 
 logger = handle_logs.get_logger("make_master_file", "applog")
