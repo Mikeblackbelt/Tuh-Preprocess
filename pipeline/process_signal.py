@@ -5,27 +5,6 @@ from testing.helpers import *
 
 logger = handle_logs.get_logger("process_signal", "logs/app.log")
 
-def load_edf(path):
-    """
-    Load an EDF file and collect metadata describing its recording.
-    
-    Parameters:
-        path: Path to the EDF file.
-    
-    Returns:
-        A tuple containing the MNE raw recording and a DataFrame with the file path,
-        channel names, sampling frequency, sample count, and duration in seconds.
-    """
-    raw = mne.io.read_raw_edf(path, preload=False, verbose=False)
-    metadata = pd.DataFrame({
-        "path": path,
-        "channels": [raw.ch_names],
-        "sfreq": raw.info["sfreq"],
-        "n_samples": raw.n_times,
-        "duration_sec": raw.n_times / raw.info["sfreq"]
-    })
-    return raw, metadata
-
 def split_into_epochs(edf_path, epoch_duration=1):
     """
     Load an EDF recording and divide it into consecutive fixed-duration epochs.
