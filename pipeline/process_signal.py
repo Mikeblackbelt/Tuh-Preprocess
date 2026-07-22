@@ -6,6 +6,16 @@ from testing.helpers import *
 logger = handle_logs.get_logger("process_signal", "logs/app.log")
 
 def load_edf(path):
+    """
+    Load an EDF file and collect metadata describing its recording.
+    
+    Parameters:
+        path: Path to the EDF file.
+    
+    Returns:
+        A tuple containing the MNE raw recording and a DataFrame with the file path,
+        channel names, sampling frequency, sample count, and duration in seconds.
+    """
     raw = mne.io.read_raw_edf(path, preload=False, verbose=False)
     metadata = pd.DataFrame({
         "path": path,
@@ -18,14 +28,14 @@ def load_edf(path):
 
 def split_into_epochs(edf_path, epoch_duration=1):
     """
-    Load EDF and split into fixed-length epochs.
+    Load an EDF recording and divide it into consecutive fixed-duration epochs.
     
     Parameters:
-        edf_path: Path to EDF file
-        epoch_duration: Length of each epoch in seconds 
+        edf_path: Path to the EDF file.
+        epoch_duration: Duration of each epoch in seconds.
     
     Returns:
-        epochs: MNE Epochs object 
+        epochs: MNE Epochs object containing the segmented recording.
     """
     raw = mne.io.read_raw_edf(str(edf_path), preload=True)
     
@@ -47,7 +57,6 @@ def split_into_epochs(edf_path, epoch_duration=1):
         verbose=False
     )
     return epochs
-
 
 # These are the standard bipolar pairs in the 10-20 system
 default_bipolar_pairs = [
